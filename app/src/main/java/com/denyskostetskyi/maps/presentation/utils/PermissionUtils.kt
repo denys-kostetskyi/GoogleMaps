@@ -1,4 +1,4 @@
-package com.denyskostetskyi.maps.presentation
+package com.denyskostetskyi.maps.presentation.utils
 
 import android.Manifest.permission
 import android.app.AlertDialog

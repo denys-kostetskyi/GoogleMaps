@@ -9,19 +9,24 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.denyskostetskyi.maps.R
 import com.denyskostetskyi.maps.databinding.ActivityMainBinding
-import com.denyskostetskyi.maps.presentation.PermissionUtils
+import com.denyskostetskyi.maps.presentation.utils.MarkerWithRadius.Companion.addMarkerWithRadius
+import com.denyskostetskyi.maps.presentation.utils.PermissionUtils
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener
 import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
 
 class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     OnMapReadyCallback,
-    OnRequestPermissionsResultCallback {
+    OnRequestPermissionsResultCallback,
+    OnMapLongClickListener {
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding ?: throw RuntimeException("ActivityMainBinding is null")
 
     private var permissionDenied = false
+
     private lateinit var map: GoogleMap
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -56,6 +61,15 @@ class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
         googleMap.setOnMyLocationButtonClickListener(this)
+        googleMap.setOnMapLongClickListener(this)
+    }
+
+    override fun onMapLongClick(position: LatLng) {
+        addMarker(position)
+    }
+
+    private fun addMarker(position: LatLng) {
+        map.addMarkerWithRadius(position)
     }
 
     override fun onMyLocationButtonClick(): Boolean {
