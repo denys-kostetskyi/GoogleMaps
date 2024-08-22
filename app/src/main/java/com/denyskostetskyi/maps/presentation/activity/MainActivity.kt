@@ -1,21 +1,28 @@
 package com.denyskostetskyi.maps.presentation.activity
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat.OnRequestPermissionsResultCallback
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.denyskostetskyi.maps.R
 import com.denyskostetskyi.maps.databinding.ActivityMainBinding
+import com.denyskostetskyi.maps.presentation.PermissionUtils
 import com.google.android.gms.maps.GoogleMap
+import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
-import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.MarkerOptions
 
-class MainActivity : AppCompatActivity(), OnMapReadyCallback {
+class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
+    OnMapReadyCallback,
+    OnRequestPermissionsResultCallback {
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding ?: throw RuntimeException("ActivityMainBinding is null")
+
+    private var permissionDenied = false
+    private lateinit var map: GoogleMap
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,7 +34,18 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
+        checkLocationPermissions()
         initMap()
+    }
+
+    private fun checkLocationPermissions() {
+        if (!PermissionUtils.isLocationPermissionGranted(this)) {
+            PermissionUtils.requestLocationPermissions(
+                this,
+                LOCATION_PERMISSION_REQUEST_CODE,
+                true
+            )
+        }
     }
 
     private fun initMap() {
@@ -36,11 +54,41 @@ class MainActivity : AppCompatActivity(), OnMapReadyCallback {
     }
 
     override fun onMapReady(googleMap: GoogleMap) {
-        val sydney = LatLng(-33.852, 151.211)
-        googleMap.addMarker(
-            MarkerOptions()
-                .position(sydney)
-                .title("Marker in Sydney")
-        )
+        map = googleMap
+        googleMap.setOnMyLocationButtonClickListener(this)
+    }
+
+    override fun onMyLocationButtonClick(): Boolean {
+        return false
+    }
+
+    @SuppressLint("MissingPermission")
+    override fun onRequestPermissionsResult(
+        requestCode: Int,
+        permissions: Array<String>,
+        grantResults: IntArray
+    ) {
+        if (requestCode != LOCATION_PERMISSION_REQUEST_CODE) {
+            super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        }
+        if (PermissionUtils.isLocationPermissionGranted(this)) {
+            map.isMyLocationEnabled = true
+        } else {
+            permissionDenied = true
+        }
+    }
+
+    override fun onResumeFragments() {
+        super.onResumeFragments()
+        if (permissionDenied) {
+            PermissionUtils.PermissionDeniedDialog.newInstance(true)
+                .show(supportFragmentManager, PERMISSION_DENIED_DIALOG_TAG)
+            permissionDenied = false
+        }
+    }
+
+    companion object {
+        private const val LOCATION_PERMISSION_REQUEST_CODE = 135
+        private const val PERMISSION_DENIED_DIALOG_TAG = "dialog"
     }
 }
