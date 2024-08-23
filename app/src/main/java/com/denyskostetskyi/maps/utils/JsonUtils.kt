@@ -1,4 +1,4 @@
-package com.denyskostetskyi.maps.presentation.utils
+package com.denyskostetskyi.maps.utils
 
 import com.google.gson.Gson
 

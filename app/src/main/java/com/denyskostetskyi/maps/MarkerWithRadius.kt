@@ -1,7 +1,6 @@
-package com.denyskostetskyi.maps.presentation.utils
+package com.denyskostetskyi.maps
 
 import android.graphics.Color
-import android.util.Log
 import com.denyskostetskyi.maps.model.MarkerData
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.Circle

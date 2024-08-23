@@ -10,10 +10,8 @@ material = "1.12.0"
 activity = "1.9.1"
 constraintlayout = "2.1.4"
 secretsGradlePlugin = "2.0.1"
-volley = "1.2.1"
 lifecycle = "2.8.4"
 mapsKtx = "5.1.0"
-easypermissions = "3.0.0"
 gson = "2.11.0"
 
 [libraries]
@@ -26,10 +24,8 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-activity = { group = "androidx.activity", name = "activity", version.ref = "activity" }
 androidx-constraintlayout = { group = "androidx.constraintlayout", name = "constraintlayout", version.ref = "constraintlayout" }
 secretsGradlePlugin = { module = "com.google.android.libraries.mapsplatform.secrets-gradle-plugin:secrets-gradle-plugin", version.ref = "secretsGradlePlugin" }
-volley = { group = "com.android.volley", name = "volley", version.ref = "volley" }
 lifecycleRuntimeKtx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 mapsKtx = { group = "com.google.maps.android", name = "maps-ktx", version.ref = "mapsKtx" }
-easypermissions = { group = "pub.devrel", name = "easypermissions", version.ref = "easypermissions" }
 gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
 [plugins]

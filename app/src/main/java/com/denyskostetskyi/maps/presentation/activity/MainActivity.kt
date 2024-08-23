@@ -17,9 +17,9 @@ import com.denyskostetskyi.maps.BackgroundTaskHandler
 import com.denyskostetskyi.maps.R
 import com.denyskostetskyi.maps.databinding.ActivityMainBinding
 import com.denyskostetskyi.maps.model.MarkerData
-import com.denyskostetskyi.maps.presentation.utils.MarkerWithRadius
-import com.denyskostetskyi.maps.presentation.utils.MarkerWithRadius.Companion.addMarkerWithRadius
-import com.denyskostetskyi.maps.presentation.utils.PermissionUtils
+import com.denyskostetskyi.maps.MarkerWithRadius
+import com.denyskostetskyi.maps.MarkerWithRadius.Companion.addMarkerWithRadius
+import com.denyskostetskyi.maps.utils.PermissionUtils
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener
@@ -166,14 +166,7 @@ class MainActivity : AppCompatActivity(),
         when (item.itemId) {
             R.id.action_edit_mode -> {
                 item.isChecked = !item.isChecked
-                isEditModeEnabled = item.isChecked
-                if (isEditModeEnabled) {
-                    Toast.makeText(
-                        this,
-                        getString(R.string.tap_to_remove_marker),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                switchEditMode(item.isChecked)
             }
 
             R.id.action_restore_from_file -> importMarkers()
@@ -181,6 +174,17 @@ class MainActivity : AppCompatActivity(),
             else -> return super.onOptionsItemSelected(item)
         }
         return true
+    }
+
+    private fun switchEditMode(isEnabled: Boolean) {
+        isEditModeEnabled = isEnabled
+        if (isEditModeEnabled) {
+            Toast.makeText(
+                this,
+                getString(R.string.tap_to_remove_marker),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun importMarkers() {

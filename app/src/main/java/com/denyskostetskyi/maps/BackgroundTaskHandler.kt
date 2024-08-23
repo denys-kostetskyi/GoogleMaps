@@ -5,8 +5,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import com.denyskostetskyi.maps.model.MarkerData
-import com.denyskostetskyi.maps.presentation.utils.JsonUtils
-import com.denyskostetskyi.maps.presentation.utils.MarkerWithRadius
+import com.denyskostetskyi.maps.utils.JsonUtils
 
 class BackgroundTaskHandler(
     looper: Looper,
