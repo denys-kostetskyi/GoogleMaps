@@ -12,6 +12,7 @@ class MarkerWithRadius private constructor(
     position: LatLng,
     radius: Double,
     map: GoogleMap,
+    private val shouldDeleteMarker: () -> Boolean,
 ) {
     private val marker: Marker
     private val circle: Circle
@@ -22,12 +23,14 @@ class MarkerWithRadius private constructor(
         addToMap()
         if (!isOnMarkerDragListenerSet) {
             setOnMarkerDragListener(map)
+            setOnMarkerClickListener(map)
         }
     }
 
     private fun addMarker(position: LatLng, map: GoogleMap) = map.addMarker(
         MarkerOptions()
             .position(position)
+            .snippet("Delete")
             .draggable(true)
     ) ?: throw IllegalStateException("Marker could not be created")
 
@@ -67,10 +70,17 @@ class MarkerWithRadius private constructor(
         isOnMarkerDragListenerSet = true
     }
 
-    private fun remove() {
-        markerToCircleMap.remove(marker)
-        marker.remove()
-        circle.remove()
+    private fun setOnMarkerClickListener(map: GoogleMap) {
+        map.setOnMarkerClickListener { currentMarker ->
+            if (shouldDeleteMarker()) {
+                val circle = markerToCircleMap.remove(currentMarker)
+                currentMarker.remove()
+                circle?.remove()
+                true
+            } else {
+                false
+            }
+        }
     }
 
     companion object {
@@ -83,9 +93,10 @@ class MarkerWithRadius private constructor(
 
         fun GoogleMap.addMarkerWithRadius(
             position: LatLng,
-            radius: Double = MARKER_CIRCLE_RADIUS_METERS
+            radius: Double = MARKER_CIRCLE_RADIUS_METERS,
+            shouldDeleteMarker: () -> Boolean,
         ) {
-            MarkerWithRadius(position, radius, this)
+            MarkerWithRadius(position, radius, this, shouldDeleteMarker)
         }
     }
 }

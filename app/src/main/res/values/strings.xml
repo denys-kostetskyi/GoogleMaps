@@ -3,4 +3,8 @@
     <string name="location_permission_denied">This application requires location permission. Please try again and grant access to use the location.</string>
     <string name="permission_required_toast">Location permission is required for this application.</string>
     <string name="permission_rationale_location">Access to the location service is required to show your current location on the map.</string>
+    <string name="edit_mode">Edit mode</string>
+    <string name="restore_markers_from_file">Restore markers from file</string>
+    <string name="save_markers_to_file">Save markers to file</string>
+    <string name="tap_to_remove_marker">Tap on marker to remove it</string>
 </resources>

@@ -2,6 +2,9 @@ package com.denyskostetskyi.maps.presentation.activity
 
 import android.annotation.SuppressLint
 import android.os.Bundle
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat.OnRequestPermissionsResultCallback
@@ -13,12 +16,11 @@ import com.denyskostetskyi.maps.presentation.utils.MarkerWithRadius.Companion.ad
 import com.denyskostetskyi.maps.presentation.utils.PermissionUtils
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener
-import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.LatLng
 
-class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
+class MainActivity : AppCompatActivity(),
     OnMapReadyCallback,
     OnRequestPermissionsResultCallback,
     OnMapLongClickListener {
@@ -26,6 +28,7 @@ class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     private val binding get() = _binding ?: throw RuntimeException("ActivityMainBinding is null")
 
     private var permissionDenied = false
+    private var isEditModeEnabled = false
 
     private lateinit var map: GoogleMap
 
@@ -39,18 +42,7 @@ class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        checkLocationPermissions()
         initMap()
-    }
-
-    private fun checkLocationPermissions() {
-        if (!PermissionUtils.isLocationPermissionGranted(this)) {
-            PermissionUtils.requestLocationPermissions(
-                this,
-                LOCATION_PERMISSION_REQUEST_CODE,
-                true
-            )
-        }
     }
 
     private fun initMap() {
@@ -60,8 +52,25 @@ class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
-        googleMap.setOnMyLocationButtonClickListener(this)
         googleMap.setOnMapLongClickListener(this)
+        checkLocationPermissions()
+    }
+
+    private fun checkLocationPermissions() {
+        if (!PermissionUtils.isLocationPermissionGranted(this)) {
+            PermissionUtils.requestLocationPermissions(
+                this,
+                LOCATION_PERMISSION_REQUEST_CODE,
+                true
+            )
+        } else {
+            enableMyLocation()
+        }
+    }
+
+    @SuppressLint("MissingPermission")
+    private fun enableMyLocation() {
+        map.isMyLocationEnabled = true
     }
 
     override fun onMapLongClick(position: LatLng) {
@@ -69,14 +78,11 @@ class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
     }
 
     private fun addMarker(position: LatLng) {
-        map.addMarkerWithRadius(position)
+        map.addMarkerWithRadius(position) {
+            isEditModeEnabled
+        }
     }
 
-    override fun onMyLocationButtonClick(): Boolean {
-        return false
-    }
-
-    @SuppressLint("MissingPermission")
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String>,
@@ -86,7 +92,7 @@ class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         }
         if (PermissionUtils.isLocationPermissionGranted(this)) {
-            map.isMyLocationEnabled = true
+            enableMyLocation()
         } else {
             permissionDenied = true
         }
@@ -99,6 +105,30 @@ class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
                 .show(supportFragmentManager, PERMISSION_DENIED_DIALOG_TAG)
             permissionDenied = false
         }
+    }
+
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.action_edit_mode -> {
+                item.isChecked = !item.isChecked
+                isEditModeEnabled = item.isChecked
+                if (isEditModeEnabled) {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.tap_to_remove_marker),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+
+            else -> return super.onOptionsItemSelected(item)
+        }
+        return true
     }
 
     companion object {

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <item
+        android:id="@+id/action_edit_mode"
+        android:title="@string/edit_mode"
+        android:checkable="true"
+        android:icon="@drawable/ic_edit_mode"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_restore_from_file"
+        android:title="@string/restore_markers_from_file"
+        android:icon="@drawable/ic_restore_from_file"
+        app:showAsAction="never" />
+    <item
+        android:id="@+id/action_save_to_file"
+        android:title="@string/save_markers_to_file"
+        android:icon="@drawable/ic_save_to_file"
+        app:showAsAction="never" />
+</menu>
