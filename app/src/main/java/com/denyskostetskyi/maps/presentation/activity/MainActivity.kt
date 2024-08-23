@@ -1,28 +1,62 @@
 package com.denyskostetskyi.maps.presentation.activity
 
 import android.annotation.SuppressLint
+import android.net.Uri
 import android.os.Bundle
+import android.os.HandlerThread
+import android.view.Menu
+import android.view.MenuItem
+import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat.OnRequestPermissionsResultCallback
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
+import com.denyskostetskyi.maps.BackgroundTaskHandler
 import com.denyskostetskyi.maps.R
 import com.denyskostetskyi.maps.databinding.ActivityMainBinding
-import com.denyskostetskyi.maps.presentation.PermissionUtils
+import com.denyskostetskyi.maps.presentation.utils.MarkerWithRadius.Companion.addMarkerWithRadius
+import com.denyskostetskyi.maps.presentation.utils.PermissionUtils
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.GoogleMap.OnMyLocationButtonClickListener
+import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.LatLng
 
-class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
+class MainActivity : AppCompatActivity(),
     OnMapReadyCallback,
-    OnRequestPermissionsResultCallback {
+    OnRequestPermissionsResultCallback,
+    OnMapLongClickListener {
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding ?: throw RuntimeException("ActivityMainBinding is null")
 
     private var permissionDenied = false
+    private var isEditModeEnabled = false
+
+    private lateinit var backgroundThread: HandlerThread
+    private lateinit var backgroundTaskHandler: BackgroundTaskHandler
     private lateinit var map: GoogleMap
+
+    private val exportFileLauncher =
+        registerForActivityResult(ActivityResultContracts.CreateDocument(FILE_JSON)) { uri: Uri? ->
+            uri?.let {
+                backgroundTaskHandler.postSaveMarkersToFile(it)
+            }
+        }
+
+    private val importFileLauncher =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
+            uri?.let {
+                backgroundTaskHandler.postLoadMarkersFromFile(it) { markerDataList ->
+                    runOnUiThread {
+                        markerDataList.forEach { data ->
+                            addMarker(LatLng(data.latitude, data.longitude))
+                        }
+                    }
+                }
+            }
+        }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -34,18 +68,13 @@ class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             insets
         }
-        checkLocationPermissions()
+        initBackgroundTaskHandler()
         initMap()
     }
 
-    private fun checkLocationPermissions() {
-        if (!PermissionUtils.isLocationPermissionGranted(this)) {
-            PermissionUtils.requestLocationPermissions(
-                this,
-                LOCATION_PERMISSION_REQUEST_CODE,
-                true
-            )
-        }
+    private fun initBackgroundTaskHandler() {
+        backgroundThread = HandlerThread(BACKGROUND_THREAD_NAME).apply { start() }
+        backgroundTaskHandler = BackgroundTaskHandler(backgroundThread.looper, this.contentResolver)
     }
 
     private fun initMap() {
@@ -55,14 +84,37 @@ class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
-        googleMap.setOnMyLocationButtonClickListener(this)
+        googleMap.setOnMapLongClickListener(this)
+        checkLocationPermissions()
     }
 
-    override fun onMyLocationButtonClick(): Boolean {
-        return false
+    private fun checkLocationPermissions() {
+        if (PermissionUtils.isLocationPermissionGranted(this)) {
+            enableMyLocation()
+        } else {
+            PermissionUtils.requestLocationPermissions(
+                this,
+                LOCATION_PERMISSION_REQUEST_CODE,
+                true
+            )
+        }
     }
 
     @SuppressLint("MissingPermission")
+    private fun enableMyLocation() {
+        map.isMyLocationEnabled = true
+    }
+
+    override fun onMapLongClick(position: LatLng) {
+        addMarker(position)
+    }
+
+    private fun addMarker(position: LatLng) {
+        map.addMarkerWithRadius(position) {
+            isEditModeEnabled
+        }
+    }
+
     override fun onRequestPermissionsResult(
         requestCode: Int,
         permissions: Array<String>,
@@ -72,7 +124,7 @@ class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
             super.onRequestPermissionsResult(requestCode, permissions, grantResults)
         }
         if (PermissionUtils.isLocationPermissionGranted(this)) {
-            map.isMyLocationEnabled = true
+            enableMyLocation()
         } else {
             permissionDenied = true
         }
@@ -87,8 +139,50 @@ class MainActivity : AppCompatActivity(), OnMyLocationButtonClickListener,
         }
     }
 
+    override fun onCreateOptionsMenu(menu: Menu?): Boolean {
+        menuInflater.inflate(R.menu.menu_main, menu)
+        return true
+    }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean {
+        when (item.itemId) {
+            R.id.action_edit_mode -> {
+                item.isChecked = !item.isChecked
+                isEditModeEnabled = item.isChecked
+                if (isEditModeEnabled) {
+                    Toast.makeText(
+                        this,
+                        getString(R.string.tap_to_remove_marker),
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+            }
+
+            R.id.action_restore_from_file -> importMarkers()
+            R.id.action_save_to_file -> exportMarkers()
+            else -> return super.onOptionsItemSelected(item)
+        }
+        return true
+    }
+
+    private fun importMarkers() {
+        importFileLauncher.launch(arrayOf(FILE_JSON))
+    }
+
+    private fun exportMarkers() {
+        exportFileLauncher.launch(SUGGESTED_FILE_NAME)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        backgroundThread.quitSafely()
+    }
+
     companion object {
         private const val LOCATION_PERMISSION_REQUEST_CODE = 135
         private const val PERMISSION_DENIED_DIALOG_TAG = "dialog"
+        private const val BACKGROUND_THREAD_NAME = "BackgroundThread"
+        private const val FILE_JSON = "application/json"
+        private const val SUGGESTED_FILE_NAME = "markers"
     }
 }

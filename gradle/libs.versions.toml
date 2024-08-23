@@ -14,6 +14,7 @@ volley = "1.2.1"
 lifecycle = "2.8.4"
 mapsKtx = "5.1.0"
 easypermissions = "3.0.0"
+gson = "2.11.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -29,6 +30,7 @@ volley = { group = "com.android.volley", name = "volley", version.ref = "volley"
 lifecycleRuntimeKtx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle" }
 mapsKtx = { group = "com.google.maps.android", name = "maps-ktx", version.ref = "mapsKtx" }
 easypermissions = { group = "pub.devrel", name = "easypermissions", version.ref = "easypermissions" }
+gson = { group = "com.google.code.gson", name = "gson", version.ref = "gson" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
