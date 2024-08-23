@@ -1,6 +1,7 @@
 package com.denyskostetskyi.maps.presentation.utils
 
 import android.graphics.Color
+import android.util.Log
 import com.denyskostetskyi.maps.model.MarkerData
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.Circle
@@ -98,6 +99,11 @@ class MarkerWithRadius private constructor(
                     it.position.longitude
                 )
             }
+
+        fun reset() {
+            markerToCircleMap.clear()
+            areMarkerTouchListenersSet = false
+        }
 
         fun GoogleMap.addMarkerWithRadius(
             position: LatLng,
