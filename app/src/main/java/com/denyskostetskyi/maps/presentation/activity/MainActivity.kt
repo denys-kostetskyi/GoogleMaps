@@ -18,6 +18,8 @@ import com.denyskostetskyi.maps.MarkerManager
 import com.denyskostetskyi.maps.R
 import com.denyskostetskyi.maps.databinding.ActivityMainBinding
 import com.denyskostetskyi.maps.utils.PermissionUtils
+import com.denyskostetskyi.maps.utils.parcelable
+import com.denyskostetskyi.maps.utils.parcelableArrayList
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.OnMapReadyCallback
@@ -191,8 +193,8 @@ class MainActivity : AppCompatActivity(),
         super.onRestoreInstanceState(savedInstanceState)
         with(savedInstanceState) {
             isEditModeEnabled = getBoolean(KEY_EDIT_MODE)
-            savedCameraPosition = getParcelable(KEY_CAMERA_POSITION, CameraPosition::class.java)
-            savedMarkerPositions = getParcelableArrayList(KEY_MARKERS, LatLng::class.java)
+            savedCameraPosition = parcelable<CameraPosition>(KEY_CAMERA_POSITION)
+            savedMarkerPositions = parcelableArrayList<LatLng>(KEY_MARKERS)
         }
         shouldRestoreState = true
     }
