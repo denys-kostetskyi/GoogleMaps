@@ -21,10 +21,11 @@ class MarkerWithRadius private constructor(
     init {
         marker = addMarker(position, map)
         circle = addCircle(position, radius, map)
-        addToMap()
+        putIntoMap()
         if (!areMarkerTouchListenersSet) {
             setOnMarkerDragListener(map)
             setOnMarkerClickListener(map)
+            areMarkerTouchListenersSet = true
         }
     }
 
@@ -42,40 +43,39 @@ class MarkerWithRadius private constructor(
             .fillColor(MARKER_CIRCLE_FILL_COLOR)
     )
 
-    private fun addToMap() {
+    private fun putIntoMap() {
         markerToCircleMap[marker] = circle
     }
 
     private fun setOnMarkerDragListener(map: GoogleMap) {
         map.setOnMarkerDragListener(object : GoogleMap.OnMarkerDragListener {
-            private var circle: Circle? = null
+            private var boundCircle: Circle? = null
 
             private fun updateCirclePosition(position: LatLng) {
-                circle?.center = position
+                boundCircle?.center = position
             }
 
-            override fun onMarkerDragStart(marker: Marker) {
-                circle = markerToCircleMap[marker]
+            override fun onMarkerDragStart(draggedMarker: Marker) {
+                boundCircle = markerToCircleMap[draggedMarker]
             }
 
-            override fun onMarkerDrag(marker: Marker) {
-                updateCirclePosition(marker.position)
+            override fun onMarkerDrag(draggedMarker: Marker) {
+                updateCirclePosition(draggedMarker.position)
             }
 
-            override fun onMarkerDragEnd(marker: Marker) {
-                updateCirclePosition(marker.position)
-                circle = null
+            override fun onMarkerDragEnd(draggedMarker: Marker) {
+                updateCirclePosition(draggedMarker.position)
+                boundCircle = null
             }
         })
-        areMarkerTouchListenersSet = true
     }
 
     private fun setOnMarkerClickListener(map: GoogleMap) {
-        map.setOnMarkerClickListener { currentMarker ->
+        map.setOnMarkerClickListener { clickedMarker ->
             if (shouldDeleteMarker()) {
-                val circle = markerToCircleMap.remove(currentMarker)
-                currentMarker.remove()
-                circle?.remove()
+                val boundCircle = markerToCircleMap.remove(clickedMarker)
+                clickedMarker.remove()
+                boundCircle?.remove()
                 true
             } else {
                 false
@@ -84,9 +84,9 @@ class MarkerWithRadius private constructor(
     }
 
     companion object {
+        private const val MARKER_CIRCLE_RADIUS_METERS = 100.0
         private const val MARKER_CIRCLE_BORDER_COLOR = Color.RED
         private val MARKER_CIRCLE_FILL_COLOR = Color.argb(64, 255, 0, 0)
-        private const val MARKER_CIRCLE_RADIUS_METERS = 100.0
 
         private val markerToCircleMap = mutableMapOf<Marker, Circle>()
         private var areMarkerTouchListenersSet = false
