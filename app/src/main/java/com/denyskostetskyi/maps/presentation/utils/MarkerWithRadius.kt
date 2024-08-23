@@ -45,23 +45,26 @@ class MarkerWithRadius private constructor(
 
     private fun setOnMarkerDragListener(map: GoogleMap) {
         map.setOnMarkerDragListener(object : GoogleMap.OnMarkerDragListener {
+            private var circle: Circle? = null
+
+            private fun updateCirclePosition(position: LatLng) {
+                circle?.center = position
+            }
+
             override fun onMarkerDragStart(marker: Marker) {
+                circle = markerToCircleMap[marker]
             }
 
             override fun onMarkerDrag(marker: Marker) {
-                updateCirclePosition(marker)
+                updateCirclePosition(marker.position)
             }
 
             override fun onMarkerDragEnd(marker: Marker) {
-                updateCirclePosition(marker)
+                updateCirclePosition(marker.position)
+                circle = null
             }
         })
         isOnMarkerDragListenerSet = true
-    }
-
-    private fun updateCirclePosition(marker: Marker) {
-        val circle = markerToCircleMap[marker]
-        circle?.center = marker.position
     }
 
     private fun remove() {
