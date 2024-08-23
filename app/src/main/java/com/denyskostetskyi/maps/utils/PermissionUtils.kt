@@ -1,4 +1,4 @@
-package com.denyskostetskyi.maps.presentation.utils
+package com.denyskostetskyi.maps.utils
 
 import android.Manifest.permission
 import android.app.AlertDialog
@@ -14,6 +14,7 @@ import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import com.denyskostetskyi.maps.R
 
+// from https://github.com/googlemaps-samples/android-samples/blob/main/ApiDemos/kotlin/app/src/gms/java/com/example/kotlindemos/PermissionUtils.kt
 object PermissionUtils {
 
     /**

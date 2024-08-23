@@ -48,13 +48,8 @@ dependencies {
     implementation(libs.material)
     implementation(libs.androidx.activity)
     implementation(libs.androidx.constraintlayout)
-    implementation(libs.volley)
-    // GMS
     implementation(libs.lifecycleRuntimeKtx)
     implementation(libs.mapsKtx)
-    // Below is used to run the easypermissions library to manage location permissions
-    // EasyPermissions is needed to help us request for permission to access location
-    implementation(libs.easypermissions)
     implementation(libs.gson)
 
     testImplementation(libs.junit)

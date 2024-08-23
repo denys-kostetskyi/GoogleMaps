@@ -14,15 +14,14 @@ import androidx.core.app.ActivityCompat.OnRequestPermissionsResultCallback
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.denyskostetskyi.maps.BackgroundTaskHandler
+import com.denyskostetskyi.maps.MarkerManager
 import com.denyskostetskyi.maps.R
 import com.denyskostetskyi.maps.databinding.ActivityMainBinding
-import com.denyskostetskyi.maps.model.MarkerData
-import com.denyskostetskyi.maps.presentation.utils.MarkerWithRadius
-import com.denyskostetskyi.maps.presentation.utils.MarkerWithRadius.Companion.addMarkerWithRadius
-import com.denyskostetskyi.maps.presentation.utils.PermissionUtils
+import com.denyskostetskyi.maps.utils.PermissionUtils
+import com.denyskostetskyi.maps.utils.parcelable
+import com.denyskostetskyi.maps.utils.parcelableArrayList
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
-import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
 import com.google.android.gms.maps.model.CameraPosition
@@ -30,8 +29,7 @@ import com.google.android.gms.maps.model.LatLng
 
 class MainActivity : AppCompatActivity(),
     OnMapReadyCallback,
-    OnRequestPermissionsResultCallback,
-    OnMapLongClickListener {
+    OnRequestPermissionsResultCallback {
     private var _binding: ActivityMainBinding? = null
     private val binding get() = _binding ?: throw RuntimeException("ActivityMainBinding is null")
 
@@ -40,25 +38,26 @@ class MainActivity : AppCompatActivity(),
     private var shouldRestoreState = false
 
     private var savedCameraPosition: CameraPosition? = null
-    private var savedMarkers: List<MarkerData>? = null
+    private var savedMarkerPositions: List<LatLng>? = null
 
     private lateinit var backgroundThread: HandlerThread
     private lateinit var backgroundTaskHandler: BackgroundTaskHandler
     private lateinit var map: GoogleMap
+    private lateinit var markerManager: MarkerManager
 
     private val exportFileLauncher =
         registerForActivityResult(ActivityResultContracts.CreateDocument(FILE_JSON)) { uri: Uri? ->
             uri?.let {
-                backgroundTaskHandler.postSaveMarkersToFile(it)
+                backgroundTaskHandler.postSaveMarkersToFile(it, markerManager.markerPositions)
             }
         }
 
     private val importFileLauncher =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
             uri?.let {
-                backgroundTaskHandler.postLoadMarkersFromFile(it) { markerDataList ->
+                backgroundTaskHandler.postLoadMarkersFromFile(it) { markerPositions ->
                     runOnUiThread {
-                        addMarkersFromList(markerDataList)
+                        markerManager.addMarkers(markerPositions)
                     }
                 }
             }
@@ -90,14 +89,14 @@ class MainActivity : AppCompatActivity(),
 
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
-        googleMap.setOnMapLongClickListener(this)
+        markerManager = MarkerManager(googleMap) { isEditModeEnabled }
         restoreMapStateIfNeeded()
         checkLocationPermissions()
     }
 
     private fun restoreMapStateIfNeeded() {
         savedCameraPosition?.let { map.moveCamera(CameraUpdateFactory.newCameraPosition(it)) }
-        savedMarkers?.let { addMarkersFromList(it) }
+        savedMarkerPositions?.let { markerManager.addMarkers(it) }
     }
 
     private fun checkLocationPermissions() {
@@ -115,22 +114,6 @@ class MainActivity : AppCompatActivity(),
     @SuppressLint("MissingPermission")
     private fun enableMyLocation() {
         map.isMyLocationEnabled = true
-    }
-
-    override fun onMapLongClick(position: LatLng) {
-        addMarker(position)
-    }
-
-    private fun addMarker(position: LatLng) {
-        map.addMarkerWithRadius(position) {
-            isEditModeEnabled
-        }
-    }
-
-    private fun addMarkersFromList(markerDataList: List<MarkerData>) {
-        markerDataList.forEach { data ->
-            addMarker(LatLng(data.latitude, data.longitude))
-        }
     }
 
     override fun onRequestPermissionsResult(
@@ -166,14 +149,7 @@ class MainActivity : AppCompatActivity(),
         when (item.itemId) {
             R.id.action_edit_mode -> {
                 item.isChecked = !item.isChecked
-                isEditModeEnabled = item.isChecked
-                if (isEditModeEnabled) {
-                    Toast.makeText(
-                        this,
-                        getString(R.string.tap_to_remove_marker),
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
+                switchEditMode(item.isChecked)
             }
 
             R.id.action_restore_from_file -> importMarkers()
@@ -181,6 +157,17 @@ class MainActivity : AppCompatActivity(),
             else -> return super.onOptionsItemSelected(item)
         }
         return true
+    }
+
+    private fun switchEditMode(isEnabled: Boolean) {
+        isEditModeEnabled = isEnabled
+        if (isEditModeEnabled) {
+            Toast.makeText(
+                this,
+                getString(R.string.tap_to_remove_marker),
+                Toast.LENGTH_SHORT
+            ).show()
+        }
     }
 
     private fun importMarkers() {
@@ -194,21 +181,20 @@ class MainActivity : AppCompatActivity(),
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         val cameraPosition = map.cameraPosition
-        val markerDataList = ArrayList<MarkerData>(MarkerWithRadius.markersData)
+        val markerDataList = ArrayList<LatLng>(markerManager.markerPositions)
         with(outState) {
             putBoolean(KEY_EDIT_MODE, isEditModeEnabled)
             putParcelable(KEY_CAMERA_POSITION, cameraPosition)
             putParcelableArrayList(KEY_MARKERS, markerDataList)
         }
-        MarkerWithRadius.reset()
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         with(savedInstanceState) {
             isEditModeEnabled = getBoolean(KEY_EDIT_MODE)
-            savedCameraPosition = getParcelable(KEY_CAMERA_POSITION, CameraPosition::class.java)
-            savedMarkers = getParcelableArrayList(KEY_MARKERS, MarkerData::class.java)
+            savedCameraPosition = parcelable<CameraPosition>(KEY_CAMERA_POSITION)
+            savedMarkerPositions = parcelableArrayList<LatLng>(KEY_MARKERS)
         }
         shouldRestoreState = true
     }

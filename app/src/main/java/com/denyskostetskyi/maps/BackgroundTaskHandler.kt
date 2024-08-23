@@ -4,31 +4,29 @@ import android.content.ContentResolver
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
-import com.denyskostetskyi.maps.model.MarkerData
-import com.denyskostetskyi.maps.presentation.utils.JsonUtils
-import com.denyskostetskyi.maps.presentation.utils.MarkerWithRadius
+import com.denyskostetskyi.maps.utils.JsonUtils
+import com.google.android.gms.maps.model.LatLng
 
 class BackgroundTaskHandler(
     looper: Looper,
     private val contentResolver: ContentResolver
 ) : Handler(looper) {
-    fun postSaveMarkersToFile(uri: Uri) {
+    fun postSaveMarkersToFile(uri: Uri, markerPositions: List<LatLng>) {
         post {
-            val data = MarkerWithRadius.markersData
-            val json = JsonUtils.toJson(data)
+            val json = JsonUtils.toJson(markerPositions)
             contentResolver.openOutputStream(uri)?.use { outputStream ->
                 outputStream.write(json.toByteArray())
             }
         }
     }
 
-    fun postLoadMarkersFromFile(uri: Uri, callback: (List<MarkerData>) -> Unit) {
+    fun postLoadMarkersFromFile(uri: Uri, callback: (List<LatLng>) -> Unit) {
         post {
             val json = contentResolver.openInputStream(uri)?.bufferedReader().use { it?.readText() }
-            val markerDataList = json?.let {
-                JsonUtils.fromJson(it, Array<MarkerData>::class.java).toList()
+            val markerPositions = json?.let {
+                JsonUtils.fromJson(it, Array<LatLng>::class.java).toList()
             } ?: emptyList()
-            callback(markerDataList)
+            callback(markerPositions)
         }
     }
 }
