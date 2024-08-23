@@ -16,12 +16,16 @@ import androidx.core.view.WindowInsetsCompat
 import com.denyskostetskyi.maps.BackgroundTaskHandler
 import com.denyskostetskyi.maps.R
 import com.denyskostetskyi.maps.databinding.ActivityMainBinding
+import com.denyskostetskyi.maps.model.MarkerData
+import com.denyskostetskyi.maps.presentation.utils.MarkerWithRadius
 import com.denyskostetskyi.maps.presentation.utils.MarkerWithRadius.Companion.addMarkerWithRadius
 import com.denyskostetskyi.maps.presentation.utils.PermissionUtils
+import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.GoogleMap.OnMapLongClickListener
 import com.google.android.gms.maps.OnMapReadyCallback
 import com.google.android.gms.maps.SupportMapFragment
+import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
 
 class MainActivity : AppCompatActivity(),
@@ -33,6 +37,10 @@ class MainActivity : AppCompatActivity(),
 
     private var permissionDenied = false
     private var isEditModeEnabled = false
+    private var shouldRestoreState = false
+
+    private var savedCameraPosition: CameraPosition? = null
+    private var savedMarkers: List<MarkerData>? = null
 
     private lateinit var backgroundThread: HandlerThread
     private lateinit var backgroundTaskHandler: BackgroundTaskHandler
@@ -50,9 +58,7 @@ class MainActivity : AppCompatActivity(),
             uri?.let {
                 backgroundTaskHandler.postLoadMarkersFromFile(it) { markerDataList ->
                     runOnUiThread {
-                        markerDataList.forEach { data ->
-                            addMarker(LatLng(data.latitude, data.longitude))
-                        }
+                        addMarkersFromList(markerDataList)
                     }
                 }
             }
@@ -85,7 +91,13 @@ class MainActivity : AppCompatActivity(),
     override fun onMapReady(googleMap: GoogleMap) {
         map = googleMap
         googleMap.setOnMapLongClickListener(this)
+        restoreMapStateIfNeeded()
         checkLocationPermissions()
+    }
+
+    private fun restoreMapStateIfNeeded() {
+        savedCameraPosition?.let { map.moveCamera(CameraUpdateFactory.newCameraPosition(it)) }
+        savedMarkers?.let { addMarkersFromList(it) }
     }
 
     private fun checkLocationPermissions() {
@@ -112,6 +124,12 @@ class MainActivity : AppCompatActivity(),
     private fun addMarker(position: LatLng) {
         map.addMarkerWithRadius(position) {
             isEditModeEnabled
+        }
+    }
+
+    private fun addMarkersFromList(markerDataList: List<MarkerData>) {
+        markerDataList.forEach { data ->
+            addMarker(LatLng(data.latitude, data.longitude))
         }
     }
 
@@ -173,6 +191,28 @@ class MainActivity : AppCompatActivity(),
         exportFileLauncher.launch(SUGGESTED_FILE_NAME)
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        val cameraPosition = map.cameraPosition
+        val markerDataList = ArrayList<MarkerData>(MarkerWithRadius.markersData)
+        with(outState) {
+            putBoolean(KEY_EDIT_MODE, isEditModeEnabled)
+            putParcelable(KEY_CAMERA_POSITION, cameraPosition)
+            putParcelableArrayList(KEY_MARKERS, markerDataList)
+        }
+        MarkerWithRadius.reset()
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        with(savedInstanceState) {
+            isEditModeEnabled = getBoolean(KEY_EDIT_MODE)
+            savedCameraPosition = getParcelable(KEY_CAMERA_POSITION, CameraPosition::class.java)
+            savedMarkers = getParcelableArrayList(KEY_MARKERS, MarkerData::class.java)
+        }
+        shouldRestoreState = true
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         backgroundThread.quitSafely()
@@ -184,5 +224,8 @@ class MainActivity : AppCompatActivity(),
         private const val BACKGROUND_THREAD_NAME = "BackgroundThread"
         private const val FILE_JSON = "application/json"
         private const val SUGGESTED_FILE_NAME = "markers"
+        private const val KEY_EDIT_MODE = "edit_mode"
+        private const val KEY_CAMERA_POSITION = "camera_position"
+        private const val KEY_MARKERS = "markers"
     }
 }
