@@ -1,6 +1,7 @@
 package com.denyskostetskyi.maps.presentation.utils
 
 import android.graphics.Color
+import com.denyskostetskyi.maps.model.MarkerData
 import com.google.android.gms.maps.GoogleMap
 import com.google.android.gms.maps.model.Circle
 import com.google.android.gms.maps.model.CircleOptions
@@ -21,7 +22,7 @@ class MarkerWithRadius private constructor(
         marker = addMarker(position, map)
         circle = addCircle(position, radius, map)
         addToMap()
-        if (!isOnMarkerDragListenerSet) {
+        if (!areMarkerTouchListenersSet) {
             setOnMarkerDragListener(map)
             setOnMarkerClickListener(map)
         }
@@ -30,7 +31,6 @@ class MarkerWithRadius private constructor(
     private fun addMarker(position: LatLng, map: GoogleMap) = map.addMarker(
         MarkerOptions()
             .position(position)
-            .snippet("Delete")
             .draggable(true)
     ) ?: throw IllegalStateException("Marker could not be created")
 
@@ -67,7 +67,7 @@ class MarkerWithRadius private constructor(
                 circle = null
             }
         })
-        isOnMarkerDragListenerSet = true
+        areMarkerTouchListenersSet = true
     }
 
     private fun setOnMarkerClickListener(map: GoogleMap) {
@@ -89,7 +89,15 @@ class MarkerWithRadius private constructor(
         private const val MARKER_CIRCLE_RADIUS_METERS = 100.0
 
         private val markerToCircleMap = mutableMapOf<Marker, Circle>()
-        private var isOnMarkerDragListenerSet = false
+        private var areMarkerTouchListenersSet = false
+
+        val markersData
+            get() = markerToCircleMap.keys.map {
+                MarkerData(
+                    it.position.latitude,
+                    it.position.longitude
+                )
+            }
 
         fun GoogleMap.addMarkerWithRadius(
             position: LatLng,

@@ -55,6 +55,7 @@ dependencies {
     // Below is used to run the easypermissions library to manage location permissions
     // EasyPermissions is needed to help us request for permission to access location
     implementation(libs.easypermissions)
+    implementation(libs.gson)
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
